@@ -1,5 +1,7 @@
 using System.Security.Cryptography;
+using Dapper;
 using Scholarship.Api.Constants;
+using Scholarship.Api.Data;
 using Scholarship.Api.DTOs;
 using Scholarship.Api.Exceptions;
 using Scholarship.Api.Helpers;
@@ -12,6 +14,7 @@ namespace Scholarship.Api.Services;
 public interface IStudentProfileService
 {
     Task<StudentProfileDto> GetProfileAsync(ulong studentId);
+    Task<bool> UpdateProfileAsync(ulong studentId, UpdateStudentProfileDto dto);
     Task<AddressDto?> GetAddressAsync(ulong studentId, string type);
     Task<ulong> SaveAddressAsync(ulong studentId, SaveAddressDto dto);
     Task<AcademicDetailsDto> GetAcademicDetailsAsync(ulong studentId);
@@ -53,6 +56,8 @@ public class StudentProfileService : IStudentProfileService
     private readonly IAcademicRepository _academicRepo;
     private readonly IBankRepository _bankRepo;
     private readonly ICertificateRepository _certRepo;
+    private readonly IScholarshipApplicationRepository _appRepo;
+    private readonly IDbConnectionFactory _db;
     private readonly ICryptoService _crypto;
     private readonly IHmacBlindHasher _hasher;
 
@@ -63,6 +68,8 @@ public class StudentProfileService : IStudentProfileService
         IAcademicRepository academicRepo,
         IBankRepository bankRepo,
         ICertificateRepository certRepo,
+        IScholarshipApplicationRepository appRepo,
+        IDbConnectionFactory db,
         ICryptoService crypto,
         IHmacBlindHasher hasher)
     {
@@ -72,8 +79,19 @@ public class StudentProfileService : IStudentProfileService
         _academicRepo = academicRepo;
         _bankRepo = bankRepo;
         _certRepo = certRepo;
+        _appRepo = appRepo;
+        _db = db;
         _crypto = crypto;
         _hasher = hasher;
+    }
+
+    private async Task EnsureApplicationNotLockedAsync(ulong studentId, uint academicYearId = 2)
+    {
+        var app = await _appRepo.GetCurrentByStudentIdAsync(studentId, academicYearId);
+        if (app != null && app.IsLocked)
+        {
+            throw new ValidationAppException("Your scholarship application has already been submitted and locked. Modifications are disabled.");
+        }
     }
 
     public async Task<StudentProfileDto> GetProfileAsync(ulong studentId)
@@ -119,6 +137,54 @@ public class StudentProfileService : IStudentProfileService
         };
     }
 
+    public async Task<bool> UpdateProfileAsync(ulong studentId, UpdateStudentProfileDto dto)
+    {
+        await EnsureApplicationNotLockedAsync(studentId, 2);
+
+        // 1. Update Student Basic info (Religion)
+        var student = await _studentRepo.GetByIdAsync(studentId);
+        if (student != null)
+        {
+            if (dto.ReligionId.HasValue && dto.ReligionId.Value > 0)
+            {
+                student.ReligionId = dto.ReligionId.Value;
+                await _studentRepo.UpdateStudentAsync(student);
+            }
+        }
+
+        // 2. Update Family details
+        var family = new StudentFamilyDetail
+        {
+            StudentId = studentId,
+            FatherGuardianName = dto.FatherGuardianName?.Trim() ?? string.Empty,
+            MotherName = dto.MotherName?.Trim() ?? string.Empty,
+            IsOrphan = dto.IsOrphan,
+            IsMotherSingleWoman = dto.IsMotherSingleWoman,
+            FatherOccupationId = dto.FatherOccupationId,
+            MotherOccupationId = dto.MotherOccupationId,
+            IsDifferentlyAbled = dto.IsDifferentlyAbled,
+            ParentsIlliterate = dto.ParentsIlliterate
+        };
+        await _vaultRepo.SaveFamilyDetailsAsync(family);
+
+        // 3. Update Household details
+        var household = new HouseholdDetail
+        {
+            StudentId = studentId,
+            HouseholdCategoryId = dto.HouseholdCategoryId ?? 1,
+            AnnualIncome = dto.AnnualIncome
+        };
+        await _vaultRepo.SaveHouseholdDetailsAsync(household);
+
+        // 4. Update Deprivation Criteria
+        if (dto.DeprivationCriteria != null)
+        {
+            await _vaultRepo.SaveDeprivationCriteriaAsync(studentId, dto.DeprivationCriteria);
+        }
+
+        return true;
+    }
+
     public async Task<AddressDto?> GetAddressAsync(ulong studentId, string type)
     {
         var addr = await _addressRepo.GetAddressByTypeAsync(studentId, type);
@@ -142,6 +208,8 @@ public class StudentProfileService : IStudentProfileService
 
     public async Task<ulong> SaveAddressAsync(ulong studentId, SaveAddressDto dto)
     {
+        await EnsureApplicationNotLockedAsync(studentId, 2);
+
         var address = new Address
         {
             StudentId = studentId,
@@ -165,7 +233,7 @@ public class StudentProfileService : IStudentProfileService
         var prev = await _academicRepo.GetPreviousEducationByStudentIdAsync(studentId);
         var current = await _academicRepo.GetAcademicRecordByStudentIdAsync(studentId);
 
-        return new AcademicDetailsDto
+        var dto = new AcademicDetailsDto
         {
             Class10Id = tenth?.Class10Id,
             TenthRollNumber = tenth?.RollNumber ?? string.Empty,
@@ -199,10 +267,64 @@ public class StudentProfileService : IStudentProfileService
             IsLateralEntry = current?.IsLateralEntry ?? false,
             IsLocked = current?.IsLocked ?? false
         };
+
+        using var conn = await _db.CreateConnectionAsync();
+        if (current != null && current.InstituteCourseId > 0)
+        {
+            const string q = @"
+                SELECT 
+                    ic.InstituteId, inst.InstituteCode, inst.InstituteName, inst.DistrictId, d.DistrictName,
+                    ic.CourseId, c.CourseCode, c.CourseName, c.CourseTypeId,
+                    ic.BranchId, cb.BranchName
+                FROM institute_courses ic
+                LEFT JOIN institutes inst ON ic.InstituteId = inst.InstituteId
+                LEFT JOIN districts d ON inst.DistrictId = d.DistrictId
+                LEFT JOIN courses c ON ic.CourseId = c.CourseId
+                LEFT JOIN course_branches cb ON ic.BranchId = cb.BranchId
+                WHERE ic.InstituteCourseId = @InstituteCourseId;";
+            var meta = await conn.QuerySingleOrDefaultAsync<dynamic>(q, new { current.InstituteCourseId });
+            if (meta != null)
+            {
+                dto.InstituteId = (ulong)(meta.InstituteId ?? 0UL);
+                dto.InstituteCode = meta.InstituteCode;
+                dto.InstituteName = meta.InstituteName;
+                dto.DistrictId = (ulong)(meta.DistrictId ?? 0UL);
+                dto.DistrictName = meta.DistrictName;
+                dto.CourseId = (ulong)(meta.CourseId ?? 0UL);
+                dto.CourseCode = meta.CourseCode;
+                dto.CourseName = meta.CourseName;
+                dto.CourseTypeId = (uint?)(meta.CourseTypeId != null ? (uint)meta.CourseTypeId : null);
+                dto.BranchId = (ulong?)(meta.BranchId != null ? (ulong)meta.BranchId : null);
+                dto.BranchName = meta.BranchName;
+            }
+        }
+
+        if (tenth != null && tenth.BoardId > 0)
+        {
+            dto.TenthBoardName = await conn.ExecuteScalarAsync<string>(
+                "SELECT BoardName FROM education_boards WHERE BoardId = @BoardId;", new { tenth.BoardId });
+        }
+
+        if (prev != null && prev.CourseId > 0)
+        {
+            dto.PreviousCourseName = await conn.ExecuteScalarAsync<string>(
+                "SELECT CourseName FROM courses WHERE CourseId = @CourseId;", new { prev.CourseId });
+            dto.PreviousCourseTypeName = await conn.ExecuteScalarAsync<string>(
+                "SELECT CourseTypeName FROM course_types WHERE CourseTypeId = @CourseTypeId;", new { prev.CourseTypeId });
+            if (prev.BranchId.HasValue && prev.BranchId.Value > 0)
+            {
+                dto.PreviousBranchName = await conn.ExecuteScalarAsync<string>(
+                    "SELECT BranchName FROM course_branches WHERE BranchId = @BranchId;", new { BranchId = prev.BranchId.Value });
+            }
+        }
+
+        return dto;
     }
 
     public async Task SaveAcademicDetailsAsync(ulong studentId, SaveAcademicDetailsDto dto)
     {
+        await EnsureApplicationNotLockedAsync(studentId, dto.AcademicYearId);
+
         // 1. Save 10th
         var tenth = new Student10thDetail
         {
@@ -257,21 +379,47 @@ public class StudentProfileService : IStudentProfileService
         var acc = await _bankRepo.GetActiveBankAccountByStudentIdAsync(studentId);
         if (acc == null) return null;
 
+        string plainAccount = string.Empty;
+        try
+        {
+            plainAccount = _crypto.Decrypt(acc.AccountNumberEncrypted);
+        }
+        catch
+        {
+            plainAccount = acc.MaskedAccountNumber;
+        }
+
+        using var conn = await _db.CreateConnectionAsync();
+        const string q = @"
+            SELECT b.BankName, bb.BranchName, bb.Address AS BranchAddress, bb.IFSCCode
+            FROM banks b
+            LEFT JOIN bank_branches bb ON bb.BankId = b.BankId AND bb.BranchId = @BranchId
+            WHERE b.BankId = @BankId;";
+        var bankMeta = await conn.QuerySingleOrDefaultAsync<dynamic>(q, new { acc.BankId, acc.BranchId });
+
         return new BankAccountDto
         {
             StudentBankAccountId = acc.StudentBankAccountId,
             StudentId = acc.StudentId,
             BankId = acc.BankId,
+            BankName = bankMeta?.BankName ?? string.Empty,
             BranchId = acc.BranchId,
+            BranchName = bankMeta?.BranchName ?? string.Empty,
+            BranchAddress = bankMeta?.BranchAddress ?? string.Empty,
+            IFSCCode = bankMeta?.IFSCCode ?? string.Empty,
+            AccountNumber = plainAccount,
             MaskedAccountNumber = acc.MaskedAccountNumber,
             IsAadhaarSeeded = acc.IsAadhaarSeeded,
             VerificationStatus = acc.VerificationStatus,
-            IsActive = acc.IsActive
+            IsActive = acc.IsActive,
+            PassbookDocumentId = null
         };
     }
 
     public async Task<ulong> SaveBankAccountAsync(ulong studentId, SaveBankAccountDto dto)
     {
+        await EnsureApplicationNotLockedAsync(studentId, 2);
+
         if (dto.AccountNumber.Trim() != dto.ConfirmAccountNumber.Trim())
             throw new ValidationAppException("Account Number and Confirm Account Number do not match.");
 
@@ -298,7 +446,16 @@ public class StudentProfileService : IStudentProfileService
         var list = await _certRepo.GetCertificatesByStudentIdAsync(studentId);
         return list.Select(c =>
         {
-            string refNo = _crypto.Decrypt(c.ReferenceNumberEncrypted);
+            string refNo = string.Empty;
+            try
+            {
+                refNo = _crypto.Decrypt(c.ReferenceNumberEncrypted);
+            }
+            catch
+            {
+                refNo = string.Empty;
+            }
+
             return new CertificateDto
             {
                 CertificateId = c.CertificateId,
@@ -306,7 +463,8 @@ public class StudentProfileService : IStudentProfileService
                 CertificateTypeId = c.CertificateTypeId,
                 IsOnlineGenerated = c.IsOnlineGenerated,
                 GeneratedFrom = c.GeneratedFrom,
-                MaskedReferenceNumber = refNo.Length > 4 ? $"{refNo[..3]}***{refNo[^3..]}" : "***",
+                ReferenceNumber = refNo,
+                MaskedReferenceNumber = refNo.Length > 4 ? $"{refNo[..3]}***{refNo[^3..]}" : (refNo.Length > 0 ? refNo : "***"),
                 IssueDate = c.IssueDate,
                 DocumentId = c.DocumentId,
                 VerificationStatus = c.VerificationStatus
@@ -316,10 +474,13 @@ public class StudentProfileService : IStudentProfileService
 
     public async Task<ulong> SaveCertificateAsync(ulong studentId, SaveCertificateDto dto)
     {
+        await EnsureApplicationNotLockedAsync(studentId, 2);
+
         string refNo = dto.ReferenceNumber.Trim();
         var cert = new StudentCertificate
         {
             StudentId = studentId,
+            AcademicYearId = 2,
             CertificateTypeId = dto.CertificateTypeId,
             IsOnlineGenerated = dto.IsOnlineGenerated,
             GeneratedFrom = dto.GeneratedFrom,

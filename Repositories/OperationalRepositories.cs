@@ -96,6 +96,7 @@ public class AcademicRepository : IAcademicRepository
     public async Task SavePreviousEducationAsync(PreviousEducation education)
     {
         using var conn = await _db.CreateConnectionAsync();
+        await conn.ExecuteAsync("DELETE FROM previous_education WHERE StudentId = @StudentId;", new { education.StudentId });
         const string sql = @"
             INSERT INTO previous_education (StudentId, AcademicRecordId, CourseTypeId, CourseId, BranchId, InstituteName, RollNumber, PassingYear, Percentage, MarksheetDocumentId, CreatedAt)
             VALUES (@StudentId, @AcademicRecordId, @CourseTypeId, @CourseId, @BranchId, @InstituteName, @RollNumber, @PassingYear, @Percentage, @MarksheetDocumentId, CURRENT_TIMESTAMP);";
@@ -118,6 +119,23 @@ public class AcademicRepository : IAcademicRepository
     public async Task<ulong> SaveAcademicRecordAsync(StudentAcademicRecord record)
     {
         using var conn = await _db.CreateConnectionAsync();
+        var existing = await conn.QueryFirstOrDefaultAsync<StudentAcademicRecord>(
+            "SELECT AcademicRecordId FROM student_academic_records WHERE StudentId = @StudentId AND AcademicYearId = @AcademicYearId ORDER BY AcademicRecordId DESC LIMIT 1;",
+            new { record.StudentId, record.AcademicYearId });
+
+        if (existing != null)
+        {
+            const string updateSql = @"
+                UPDATE student_academic_records
+                SET SchemeId = @SchemeId, InstituteCourseId = @InstituteCourseId, AdmissionDate = @AdmissionDate,
+                    EnrollmentNumber = @EnrollmentNumber, EnrollmentDate = @EnrollmentDate, AdmissionTypeId = @AdmissionTypeId,
+                    StudyModeId = @StudyModeId, CourseYear = @CourseYear, IsHosteller = @IsHosteller, IsLateralEntry = @IsLateralEntry
+                WHERE AcademicRecordId = @AcademicRecordId;";
+            record.AcademicRecordId = existing.AcademicRecordId;
+            await conn.ExecuteAsync(updateSql, record);
+            return existing.AcademicRecordId;
+        }
+
         const string sql = @"
             INSERT INTO student_academic_records (StudentId, AcademicYearId, SchemeId, InstituteCourseId, AdmissionDate, EnrollmentNumber, EnrollmentDate, AdmissionTypeId, StudyModeId, CourseYear, IsHosteller, IsLateralEntry, IsLocked, CreatedAt)
             VALUES (@StudentId, @AcademicYearId, @SchemeId, @InstituteCourseId, @AdmissionDate, @EnrollmentNumber, @EnrollmentDate, @AdmissionTypeId, @StudyModeId, @CourseYear, @IsHosteller, @IsLateralEntry, @IsLocked, CURRENT_TIMESTAMP);
@@ -191,6 +209,9 @@ public class CertificateRepository : ICertificateRepository
     public async Task<ulong> SaveCertificateAsync(StudentCertificate certificate)
     {
         using var conn = await _db.CreateConnectionAsync();
+        await conn.ExecuteAsync("DELETE FROM student_certificates WHERE StudentId = @StudentId AND CertificateTypeId = @CertificateTypeId;",
+            new { certificate.StudentId, certificate.CertificateTypeId });
+
         const string sql = @"
             INSERT INTO student_certificates (StudentId, AcademicYearId, CertificateTypeId, IsOnlineGenerated, GeneratedFrom, ReferenceNumberEncrypted, ReferenceNumberHash, IssueDate, DocumentId, VerificationStatus, VerifiedAt, CreatedAt)
             VALUES (@StudentId, @AcademicYearId, @CertificateTypeId, @IsOnlineGenerated, @GeneratedFrom, @ReferenceNumberEncrypted, @ReferenceNumberHash, @IssueDate, @DocumentId, @VerificationStatus, @VerifiedAt, CURRENT_TIMESTAMP);

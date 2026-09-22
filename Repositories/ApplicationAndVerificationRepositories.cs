@@ -570,6 +570,13 @@ public class MasterDataRepository : IMasterDataRepository
         return list.AsList();
     }
 
+    public async Task<BankBranch?> GetBranchByIfscAsync(string ifsc)
+    {
+        using var conn = await _db.CreateConnectionAsync();
+        const string sql = "SELECT BranchId, BankId, IFSCCode, BranchName, Address, IsActive, CreatedAt FROM bank_branches WHERE UPPER(IFSCCode) = UPPER(@IFSCCode) AND IsActive = 1 LIMIT 1;";
+        return await conn.QueryFirstOrDefaultAsync<BankBranch>(sql, new { IFSCCode = ifsc?.Trim() });
+    }
+
     public async Task<List<CourseType>> GetCourseTypesAsync()
     {
         using var conn = await _db.CreateConnectionAsync();

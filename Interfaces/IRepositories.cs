@@ -139,6 +139,7 @@ public interface IMasterDataRepository
     Task<List<PostOffice>> GetPostOfficesAsync(ulong districtId);
     Task<List<Bank>> GetBanksAsync();
     Task<List<BankBranch>> GetBankBranchesAsync(ulong bankId);
+    Task<BankBranch?> GetBranchByIfscAsync(string ifsc);
     Task<List<CourseType>> GetCourseTypesAsync();
     Task<List<Course>> GetCoursesAsync(uint? courseTypeId);
     Task<List<CourseBranch>> GetCourseBranchesAsync(ulong courseId);

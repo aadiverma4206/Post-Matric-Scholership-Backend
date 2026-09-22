@@ -34,11 +34,43 @@ public class StudentProfileDto
     public bool IsDifferentlyAbled { get; set; }
     public bool ParentsIlliterate { get; set; }
 
+    public string? FirstNameHindi { get; set; }
+    public string? MiddleNameHindi { get; set; }
+    public string? LastNameHindi { get; set; }
+    public string? FatherNameHindi { get; set; }
+    public string? MotherNameHindi { get; set; }
+
     // Household details
     public uint? HouseholdCategoryId { get; set; }
     public decimal AnnualIncome { get; set; }
     public string? MaskedBplNumber { get; set; }
     public List<uint> ApplicableDeprivationCriteria { get; set; } = new();
+}
+
+public class UpdateStudentProfileDto
+{
+    public string? FatherGuardianName { get; set; }
+    public string? MotherName { get; set; }
+    public bool IsOrphan { get; set; }
+    public bool IsMotherSingleWoman { get; set; }
+    public uint? FatherOccupationId { get; set; }
+    public uint? MotherOccupationId { get; set; }
+    public bool IsDifferentlyAbled { get; set; }
+    public bool ParentsIlliterate { get; set; }
+
+    public string? AlternateMobile { get; set; }
+    public string? AlternateEmail { get; set; }
+
+    public string? FirstNameHindi { get; set; }
+    public string? MiddleNameHindi { get; set; }
+    public string? LastNameHindi { get; set; }
+    public string? FatherNameHindi { get; set; }
+    public string? MotherNameHindi { get; set; }
+
+    public uint? ReligionId { get; set; }
+    public uint? HouseholdCategoryId { get; set; }
+    public decimal AnnualIncome { get; set; }
+    public List<uint>? DeprivationCriteria { get; set; }
 }
 
 public class AddressDto
@@ -90,8 +122,11 @@ public class AcademicDetailsDto
     // Previous Education
     public ulong? PreviousEducationId { get; set; }
     public uint PreviousCourseTypeId { get; set; }
+    public string? PreviousCourseTypeName { get; set; }
     public ulong PreviousCourseId { get; set; }
+    public string? PreviousCourseName { get; set; }
     public ulong? PreviousBranchId { get; set; }
+    public string? PreviousBranchName { get; set; }
     public string PreviousInstituteName { get; set; } = string.Empty;
     public string PreviousRollNumber { get; set; } = string.Empty;
     public ushort PreviousPassingYear { get; set; }
@@ -103,9 +138,14 @@ public class AcademicDetailsDto
     public uint AcademicYearId { get; set; }
     public ulong SchemeId { get; set; }
     public ulong InstituteCourseId { get; set; }
+    public ulong DistrictId { get; set; }
+    public string? DistrictName { get; set; }
     public ulong InstituteId { get; set; }
+    public string? InstituteCode { get; set; }
     public string? InstituteName { get; set; }
+    public uint? CourseTypeId { get; set; }
     public ulong CourseId { get; set; }
+    public string? CourseCode { get; set; }
     public string? CourseName { get; set; }
     public ulong? BranchId { get; set; }
     public string? BranchName { get; set; }
@@ -162,7 +202,9 @@ public class BankAccountDto
     public string? BankName { get; set; }
     public ulong BranchId { get; set; }
     public string? BranchName { get; set; }
+    public string? BranchAddress { get; set; }
     public string? IFSCCode { get; set; }
+    public string AccountNumber { get; set; } = string.Empty;
     public string MaskedAccountNumber { get; set; } = string.Empty;
     public bool IsAadhaarSeeded { get; set; }
     public string VerificationStatus { get; set; } = "PENDING";
@@ -188,7 +230,9 @@ public class CertificateDto
     public string? CertificateTypeName { get; set; }
     public bool IsOnlineGenerated { get; set; }
     public string GeneratedFrom { get; set; } = "EDISTRICT_PORTAL";
+    public string ReferenceNumber { get; set; } = string.Empty;
     public string MaskedReferenceNumber { get; set; } = string.Empty;
+    public decimal AnnualIncome { get; set; }
     public DateTime? IssueDate { get; set; }
     public ulong? DocumentId { get; set; }
     public string VerificationStatus { get; set; } = "PENDING";
@@ -200,6 +244,7 @@ public class SaveCertificateDto
     public bool IsOnlineGenerated { get; set; } = true;
     public string GeneratedFrom { get; set; } = "EDISTRICT_PORTAL";
     [Required] public string ReferenceNumber { get; set; } = string.Empty;
+    public decimal AnnualIncome { get; set; }
     public DateTime? IssueDate { get; set; }
     public ulong? DocumentId { get; set; }
 }

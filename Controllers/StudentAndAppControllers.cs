@@ -27,6 +27,14 @@ public class ProfileController : ControllerBase
         var profile = await _profileService.GetProfileAsync(studentId);
         return Ok(ApiResponse<StudentProfileDto>.Ok(profile));
     }
+
+    [HttpPost]
+    public async Task<ActionResult<ApiResponse<bool>>> UpdateProfile([FromBody] UpdateStudentProfileDto dto)
+    {
+        ulong studentId = ulong.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "0");
+        await _profileService.UpdateProfileAsync(studentId, dto);
+        return Ok(ApiResponse<bool>.Ok(true, "Profile updated successfully."));
+    }
 }
 
 [ApiController]

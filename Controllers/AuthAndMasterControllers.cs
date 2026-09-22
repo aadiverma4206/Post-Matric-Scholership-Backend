@@ -193,6 +193,24 @@ public class MastersController : ControllerBase
         return Ok(ApiResponse<object>.Ok(list.Select(x => new { id = x.BranchId, code = x.IFSCCode, name = $"{x.BranchName} ({x.IFSCCode})", bankId = x.BankId, ifscCode = x.IFSCCode })));
     }
 
+    [HttpGet("branch-by-ifsc")]
+    public async Task<IActionResult> GetBranchByIfsc([FromQuery] string ifsc)
+    {
+        if (string.IsNullOrWhiteSpace(ifsc)) return BadRequest(ApiResponse<object>.Fail("IFSC is required."));
+        var branch = await _masterService.GetBranchByIfscAsync(ifsc);
+        if (branch == null) return NotFound(ApiResponse<object>.Fail("Branch not found for IFSC code."));
+        var banks = await _masterService.GetBanksAsync();
+        var bank = banks.FirstOrDefault(b => b.BankId == branch.BankId);
+        return Ok(ApiResponse<object>.Ok(new {
+            branchId = branch.BranchId,
+            bankId = branch.BankId,
+            bankName = bank?.BankName ?? "",
+            branchName = branch.BranchName,
+            branchAddress = branch.Address,
+            ifscCode = branch.IFSCCode
+        }));
+    }
+
     [HttpGet("course-types")]
     public async Task<IActionResult> GetCourseTypes()
     {

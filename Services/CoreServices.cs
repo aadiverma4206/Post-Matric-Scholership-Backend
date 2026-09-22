@@ -42,6 +42,7 @@ public interface IMasterDataService
     Task<List<PostOffice>> GetPostOfficesAsync(ulong districtId);
     Task<List<Bank>> GetBanksAsync();
     Task<List<BankBranch>> GetBankBranchesAsync(ulong bankId);
+    Task<BankBranch?> GetBranchByIfscAsync(string ifsc);
     Task<List<CourseType>> GetCourseTypesAsync();
     Task<List<Course>> GetCoursesAsync(uint? courseTypeId);
     Task<List<CourseBranch>> GetCourseBranchesAsync(ulong courseId);
@@ -480,6 +481,7 @@ public class MasterDataService : IMasterDataService
     public Task<List<PostOffice>> GetPostOfficesAsync(ulong districtId) => _repo.GetPostOfficesAsync(districtId);
     public Task<List<Bank>> GetBanksAsync() => _repo.GetBanksAsync();
     public Task<List<BankBranch>> GetBankBranchesAsync(ulong bankId) => _repo.GetBankBranchesAsync(bankId);
+    public Task<BankBranch?> GetBranchByIfscAsync(string ifsc) => _repo.GetBranchByIfscAsync(ifsc);
     public Task<List<CourseType>> GetCourseTypesAsync() => _repo.GetCourseTypesAsync();
     public Task<List<Course>> GetCoursesAsync(uint? courseTypeId) => _repo.GetCoursesAsync(courseTypeId);
     public Task<List<CourseBranch>> GetCourseBranchesAsync(ulong courseId) => _repo.GetCourseBranchesAsync(courseId);
