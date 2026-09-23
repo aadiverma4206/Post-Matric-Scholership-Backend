@@ -176,7 +176,7 @@ public class AdminRepository : IAdminRepository
         {
             details.MaskedAadhaar = aadhaar.MaskedAadhaar ?? "XXXX-XXXX-XXXX";
             details.AadhaarVerificationStatus = aadhaar.AadhaarVerificationStatus ?? "PENDING";
-            details.AadhaarConsentGiven = aadhaar.AadhaarConsentGiven == 1;
+            details.AadhaarConsentGiven = Convert.ToBoolean(aadhaar.AadhaarConsentGiven);
             details.AadhaarVerifiedAt = aadhaar.AadhaarVerifiedAt;
         }
 
@@ -195,10 +195,10 @@ public class AdminRepository : IAdminRepository
         {
             details.FatherGuardianName = family.FatherGuardianName ?? "";
             details.MotherName = family.MotherName ?? "";
-            details.IsOrphan = family.IsOrphan == 1;
-            details.IsMotherSingleWoman = family.IsMotherSingleWoman == 1;
-            details.IsDifferentlyAbled = family.IsDifferentlyAbled == 1;
-            details.ParentsIlliterate = family.ParentsIlliterate == 1;
+            details.IsOrphan = Convert.ToBoolean(family.IsOrphan);
+            details.IsMotherSingleWoman = Convert.ToBoolean(family.IsMotherSingleWoman);
+            details.IsDifferentlyAbled = Convert.ToBoolean(family.IsDifferentlyAbled);
+            details.ParentsIlliterate = Convert.ToBoolean(family.ParentsIlliterate);
             details.FatherOccupation = family.FatherOccupation;
             details.MotherOccupation = family.MotherOccupation;
         }
@@ -247,7 +247,7 @@ public class AdminRepository : IAdminRepository
                 details.MaskedEmail = "user***@portal.gov.in";
             }
 
-            details.IsContactVerified = contact.IsVerified == 1;
+            details.IsContactVerified = Convert.ToBoolean(contact.IsVerified);
         }
 
         // 6. Addresses (Permanent and Correspondence)
@@ -317,7 +317,7 @@ public class AdminRepository : IAdminRepository
             details.AdmissionTypeName = acad.AdmissionTypeName;
             details.StudyModeName = acad.StudyModeName;
             details.CourseYear = acad.CourseYear;
-            details.IsHosteller = acad.IsHosteller == 1;
+            details.IsHosteller = Convert.ToBoolean(acad.IsHosteller);
         }
 
         // 8. Bank Account Details
@@ -337,7 +337,7 @@ public class AdminRepository : IAdminRepository
             details.BankBranchName = bank.BankBranchName;
             details.IFSCCode = bank.IFSCCode;
             details.MaskedAccountNumber = bank.MaskedAccountNumber;
-            details.IsAadhaarSeeded = bank.IsAadhaarSeeded == 1;
+            details.IsAadhaarSeeded = Convert.ToBoolean(bank.IsAadhaarSeeded);
             details.BankVerificationStatus = bank.BankVerificationStatus;
         }
 
@@ -364,7 +364,7 @@ public class AdminRepository : IAdminRepository
             details.ApplicationStatusCode = app.ApplicationStatusCode;
             details.ApplicationStatusName = app.ApplicationStatusName;
             details.CurrentStep = app.CurrentStep;
-            details.IsLocked = app.IsLocked == 1;
+            details.IsLocked = Convert.ToBoolean(app.IsLocked);
             details.LockedAt = app.LockedAt;
             details.ApplicationCreatedAt = app.ApplicationCreatedAt;
 
