@@ -68,6 +68,7 @@ builder.Services.AddScoped<IVerificationRepository, VerificationRepository>();
 builder.Services.AddScoped<IOtpRepository, OtpRepository>();
 builder.Services.AddScoped<IMasterDataRepository, MasterDataRepository>();
 builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
+builder.Services.AddScoped<IAdminRepository, AdminRepository>();
 
 // Business Services
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -77,6 +78,7 @@ builder.Services.AddScoped<IStudentProfileService, StudentProfileService>();
 builder.Services.AddScoped<IScholarshipApplicationService, ScholarshipApplicationService>();
 builder.Services.AddScoped<IVerificationService, VerificationService>();
 builder.Services.AddScoped<IDocumentStorageService, DocumentStorageService>();
+builder.Services.AddScoped<IAdminService, AdminService>();
 
 // JWT Authentication
 var jwtSecret = builder.Configuration["Jwt:SecretKey"] 

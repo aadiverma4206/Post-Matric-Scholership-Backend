@@ -234,5 +234,87 @@ public class DbDataSeeder
                 INSERT INTO user_roles (UserId, RoleId, AssignedAt) VALUES (@UserId, 1, CURRENT_TIMESTAMP);",
                 new { UserId = adminUserId });
         }
+
+        // 15. Ensure Views exist in scholarship_ms_db
+        try
+        {
+            await conn.ExecuteAsync(@"
+                CREATE OR REPLACE VIEW `vw_district_admin_students` AS SELECT
+                    ud.`UserId`                 AS `AdminUserId`,
+                    ud.`DistrictId`,
+                    d.`DistrictName`,
+                    s.`StudentId`,
+                    s.`StudentCode`,
+                    s.`FirstName`,
+                    s.`MiddleName`,
+                    s.`LastName`,
+                    s.`DateOfBirth`,
+                    a.`AddressLine`,
+                    a.`Pincode`,
+                    sa.`ApplicationId`,
+                    sa.`ApplicationNumber`,
+                    sa.`ApplicationStatusId`,
+                    ast.`Code`                  AS `ApplicationStatusCode`
+                FROM `user_districts` ud
+                JOIN `districts` d                ON d.`DistrictId` = ud.`DistrictId`
+                JOIN `addresses` a                ON a.`DistrictId` = ud.`DistrictId` AND a.`IsCurrent` = 1 AND a.`AddressType` = 'PERMANENT'
+                JOIN `students` s                 ON s.`StudentId` = a.`StudentId`
+                LEFT JOIN `scholarship_applications` sa ON sa.`StudentId` = s.`StudentId`
+                LEFT JOIN `application_statuses` ast    ON ast.`ApplicationStatusId` = sa.`ApplicationStatusId`
+                WHERE ud.`IsActive` = 1
+                  AND s.`IsActive` = 1;
+
+                CREATE OR REPLACE VIEW `vw_institute_admin_students` AS SELECT
+                    iu.`UserId`                 AS `AdminUserId`,
+                    i.`InstituteId`,
+                    i.`InstituteName`,
+                    s.`StudentId`,
+                    s.`StudentCode`,
+                    s.`FirstName`,
+                    s.`MiddleName`,
+                    s.`LastName`,
+                    sar.`AcademicRecordId`,
+                    sar.`AcademicYearId`,
+                    sa.`ApplicationId`,
+                    sa.`ApplicationNumber`,
+                    sa.`ApplicationStatusId`,
+                    ast.`Code`                  AS `ApplicationStatusCode`,
+                    d.`DistrictId`,
+                    d.`DistrictName`
+                FROM `institute_users` iu
+                JOIN `institutes` i               ON i.`InstituteId` = iu.`InstituteId`
+                JOIN `institute_courses` ic       ON ic.`InstituteId` = i.`InstituteId`
+                JOIN `student_academic_records` sar ON sar.`InstituteCourseId` = ic.`InstituteCourseId`
+                JOIN `students` s                 ON s.`StudentId` = sar.`StudentId`
+                LEFT JOIN `scholarship_applications` sa ON sa.`AcademicRecordId` = sar.`AcademicRecordId`
+                LEFT JOIN `application_statuses` ast    ON ast.`ApplicationStatusId` = sa.`ApplicationStatusId`
+                LEFT JOIN `addresses` a           ON a.`StudentId` = s.`StudentId` AND a.`IsCurrent` = 1 AND a.`AddressType` = 'PERMANENT'
+                LEFT JOIN `districts` d           ON d.`DistrictId` = a.`DistrictId`
+                WHERE iu.`IsActive` = 1
+                  AND s.`IsActive` = 1;
+
+                CREATE OR REPLACE VIEW `vw_super_admin_students` AS SELECT
+                    s.`StudentId`,
+                    s.`StudentCode`,
+                    s.`FirstName`,
+                    s.`MiddleName`,
+                    s.`LastName`,
+                    d.`DistrictId`,
+                    d.`DistrictName`,
+                    sa.`ApplicationId`,
+                    sa.`ApplicationNumber`,
+                    sa.`ApplicationStatusId`,
+                    ast.`Code`                  AS `ApplicationStatusCode`
+                FROM `students` s
+                LEFT JOIN `addresses` a           ON a.`StudentId` = s.`StudentId` AND a.`IsCurrent` = 1 AND a.`AddressType` = 'PERMANENT'
+                LEFT JOIN `districts` d           ON d.`DistrictId` = a.`DistrictId`
+                LEFT JOIN `scholarship_applications` sa ON sa.`StudentId` = s.`StudentId`
+                LEFT JOIN `application_statuses` ast    ON ast.`ApplicationStatusId` = sa.`ApplicationStatusId`
+                WHERE s.`IsActive` = 1;");
+        }
+        catch
+        {
+            // Views may already exist or user lacks permission, safe to continue
+        }
     }
 }
