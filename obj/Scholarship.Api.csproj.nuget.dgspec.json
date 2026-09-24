@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "c:\\Users\\PCv\\Desktop\\scholership ms\\Scholarship.Api\\Scholarship.Api.csproj": {}
+    "C:\\Users\\PCv\\Desktop\\scholership ms\\Scholarship.Api\\Scholarship.Api.csproj": {}
   },
   "projects": {
-    "c:\\Users\\PCv\\Desktop\\scholership ms\\Scholarship.Api\\Scholarship.Api.csproj": {
+    "C:\\Users\\PCv\\Desktop\\scholership ms\\Scholarship.Api\\Scholarship.Api.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "c:\\Users\\PCv\\Desktop\\scholership ms\\Scholarship.Api\\Scholarship.Api.csproj",
+        "projectUniqueName": "C:\\Users\\PCv\\Desktop\\scholership ms\\Scholarship.Api\\Scholarship.Api.csproj",
         "projectName": "Scholarship.Api",
-        "projectPath": "c:\\Users\\PCv\\Desktop\\scholership ms\\Scholarship.Api\\Scholarship.Api.csproj",
+        "projectPath": "C:\\Users\\PCv\\Desktop\\scholership ms\\Scholarship.Api\\Scholarship.Api.csproj",
         "packagesPath": "C:\\Users\\PCv\\.nuget\\packages\\",
-        "outputPath": "c:\\Users\\PCv\\Desktop\\scholership ms\\Scholarship.Api\\obj\\",
+        "outputPath": "C:\\Users\\PCv\\Desktop\\scholership ms\\Scholarship.Api\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\PCv\\AppData\\Roaming\\NuGet\\NuGet.Config"

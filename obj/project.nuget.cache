@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "c00g52Jh3qs=",
+  "dgSpecHash": "E+ey0l+2H3k=",
   "success": true,
-  "projectFilePath": "c:\\Users\\PCv\\Desktop\\scholership ms\\Scholarship.Api\\Scholarship.Api.csproj",
+  "projectFilePath": "C:\\Users\\PCv\\Desktop\\scholership ms\\Scholarship.Api\\Scholarship.Api.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\PCv\\.nuget\\packages\\dapper\\2.1.86\\dapper.2.1.86.nupkg.sha512",
     "C:\\Users\\PCv\\.nuget\\packages\\fluentvalidation\\11.11.0\\fluentvalidation.11.11.0.nupkg.sha512",
